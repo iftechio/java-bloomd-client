@@ -32,7 +32,7 @@ public class BloomdHandler extends MessageToMessageCodec<String, Object> {
 
     @Override
     protected void decode(ChannelHandlerContext ctx, String msg, List<Object> out) throws Exception {
-        BloomdCommandCodec<Object, Object> currentCodec = decoders.poll();
+        BloomdCommandCodec<Object, Object> currentCodec = decoders.peek();
 
         Object result = null;
         Exception failure;
@@ -45,8 +45,10 @@ public class BloomdHandler extends MessageToMessageCodec<String, Object> {
 
         if (failure != null) {
             onReplyReceivedListener.onError(failure);
+            decoders.poll();
         } else if (result != null) {
             onReplyReceivedListener.onReplyReceived(result);
+            decoders.poll();
         }
     }
 

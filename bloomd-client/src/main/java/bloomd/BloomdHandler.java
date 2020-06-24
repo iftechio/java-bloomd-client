@@ -23,6 +23,7 @@ public class BloomdHandler extends MessageToMessageCodec<String, Object> {
     @Override
     protected void encode(ChannelHandlerContext ctx, Object msg, List<Object> out) throws Exception {
         BloomdCommandCodec<Object, Object> codec = encoders.poll();
+        decoders.add(codec);
 
         // send command
         String command = codec.buildCommand(msg);
@@ -56,9 +57,7 @@ public class BloomdHandler extends MessageToMessageCodec<String, Object> {
     }
 
     public <I, O> void queueCodec(BloomdCommandCodec<I, O> codec) {
-        BloomdCommandCodec<Object, Object> c = (BloomdCommandCodec<Object, Object>) codec;
-        encoders.add(c);
-        decoders.add(c);
+        encoders.add((BloomdCommandCodec<Object, Object>) codec);
     }
 
     public interface OnReplyReceivedListener {

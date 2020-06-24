@@ -4,7 +4,6 @@ import bloomd.decoders.BloomdCommandCodec;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToMessageCodec;
 
-import java.util.ArrayDeque;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -18,7 +17,7 @@ public class BloomdHandler extends MessageToMessageCodec<String, Object> {
     public BloomdHandler(OnReplyReceivedListener onReplyReceivedListener) {
         this.onReplyReceivedListener = onReplyReceivedListener;
         encoders = new ConcurrentLinkedQueue<>();
-        decoders = new ArrayDeque<>();
+        decoders = new ConcurrentLinkedQueue<>();
     }
 
     @Override
@@ -28,13 +27,11 @@ public class BloomdHandler extends MessageToMessageCodec<String, Object> {
         // send command
         String command = codec.buildCommand(msg);
         ctx.writeAndFlush(command + "\r\n");
-
-        decoders.add(codec);
     }
 
     @Override
     protected void decode(ChannelHandlerContext ctx, String msg, List<Object> out) throws Exception {
-        BloomdCommandCodec<Object, Object> currentCodec = decoders.peek();
+        BloomdCommandCodec<Object, Object> currentCodec = decoders.poll();
 
         Object result = null;
         Exception failure;
@@ -47,10 +44,8 @@ public class BloomdHandler extends MessageToMessageCodec<String, Object> {
 
         if (failure != null) {
             onReplyReceivedListener.onError(failure);
-            decoders.poll();
         } else if (result != null) {
             onReplyReceivedListener.onReplyReceived(result);
-            decoders.poll();
         }
     }
 
@@ -61,7 +56,9 @@ public class BloomdHandler extends MessageToMessageCodec<String, Object> {
     }
 
     public <I, O> void queueCodec(BloomdCommandCodec<I, O> codec) {
-        encoders.add((BloomdCommandCodec<Object, Object>) codec);
+        BloomdCommandCodec<Object, Object> c = (BloomdCommandCodec<Object, Object>) codec;
+        encoders.add(c);
+        decoders.add(c);
     }
 
     public interface OnReplyReceivedListener {

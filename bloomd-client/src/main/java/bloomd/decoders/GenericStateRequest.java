@@ -12,12 +12,12 @@ import java.util.List;
  *
  * They share the same syntax: command filter_name key [key2 [keyN]]
  */
-public class GenericStateCodec<T> implements BloomdCommandCodec<StateArgs, T> {
+public class GenericStateRequest<T> extends Request<StateArgs, T> {
 
     private final String cmd;
     private final boolean singleItem;
 
-    public GenericStateCodec(String cmd, boolean singleItem) {
+    public GenericStateRequest(String cmd, boolean singleItem) {
         this.cmd = cmd;
         this.singleItem = singleItem;
     }

@@ -3,7 +3,7 @@ package bloomd.decoders;
 import bloomd.args.CreateFilterArgs;
 import bloomd.replies.CreateResult;
 
-public class CreateCodec implements BloomdCommandCodec<CreateFilterArgs, CreateResult> {
+public class CreateRequest extends Request<CreateFilterArgs, CreateResult> {
 
     @Override
     public String buildCommand(CreateFilterArgs args) {

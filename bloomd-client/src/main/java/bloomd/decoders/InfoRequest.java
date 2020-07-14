@@ -3,7 +3,7 @@ package bloomd.decoders;
 import bloomd.FilterDoesNotExistException;
 import bloomd.replies.BloomdInfo;
 
-public class InfoCodec implements BloomdCommandCodec<String, BloomdInfo> {
+public class InfoRequest extends Request<String, BloomdInfo> {
 
     private BloomdInfoBuilder builder = null;
 

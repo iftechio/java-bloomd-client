@@ -13,19 +13,6 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Future;
 
 public class BloomdClientImpl implements BloomdClient, BloomdHandler.OnReplyReceivedListener {
-
-    private final BloomdCommandCodec<String, List<BloomdFilter>> listCodec = new ListCodec();
-    private final BloomdCommandCodec<String, BloomdInfo> infoCodec = new InfoCodec();
-    private final BloomdCommandCodec<String, ClearResult> clearCodec = new ClearCodec();
-    private final BloomdCommandCodec<CreateFilterArgs, CreateResult> createCodec = new CreateCodec();
-    private final BloomdCommandCodec<String, Boolean> dropCodec = new SingleArgCodec("drop");
-    private final BloomdCommandCodec<String, Boolean> closeCodec = new SingleArgCodec("close");
-    private final BloomdCommandCodec<String, Boolean> flushCodec = new SingleArgCodec("flush");
-    private final BloomdCommandCodec<StateArgs, StateResult> setCodec = new GenericStateCodec<>("s", true);
-    private final BloomdCommandCodec<StateArgs, StateResult> checkCodec = new GenericStateCodec<>("c", true);
-    private final BloomdCommandCodec<StateArgs, List<StateResult>> bulkCodec = new GenericStateCodec<>("b", false);
-    private final BloomdCommandCodec<StateArgs, List<StateResult>> multiCodec = new GenericStateCodec<>("m", false);
-
     private final Object clientLock = new Object();
 
     private final Channel ch;
@@ -46,7 +33,8 @@ public class BloomdClientImpl implements BloomdClient, BloomdHandler.OnReplyRece
 
     @Override
     public Future<List<BloomdFilter>> list(String prefix) {
-        return sendCommand(listCodec, prefix == null ? "" : prefix);
+        Request<String, List<BloomdFilter>> listRequest = new ListRequest();
+        return send(listRequest, prefix == null ? "" : prefix);
     }
 
     @Override
@@ -61,37 +49,43 @@ public class BloomdClientImpl implements BloomdClient, BloomdHandler.OnReplyRece
     @Override
     public Future<CreateResult> create(CreateFilterArgs args) {
         checkFilterNameValid(args.getFilterName());
-        return sendCommand(createCodec, args);
+        Request<CreateFilterArgs, CreateResult> createRequest = new CreateRequest();
+        return send(createRequest, args);
     }
 
     @Override
     public Future<Boolean> drop(String filterName) {
         checkFilterNameValid(filterName);
-        return sendCommand(dropCodec, filterName);
+        Request<String, Boolean> dropRequest = new SingleArgRequest("drop");
+        return send(dropRequest, filterName);
     }
 
     @Override
     public Future<Boolean> close(String filterName) {
         checkFilterNameValid(filterName);
-        return sendCommand(closeCodec, filterName);
+        Request<String, Boolean> closeRequest = new SingleArgRequest("close");
+        return send(closeRequest, filterName);
     }
 
     @Override
     public Future<ClearResult> clear(String filterName) {
         checkFilterNameValid(filterName);
-        return sendCommand(clearCodec, filterName);
+        Request<String, ClearResult> clearRequest = new ClearRequest();
+        return send(clearRequest, filterName);
     }
 
     @Override
     public Future<StateResult> check(String filterName, String key) {
         StateArgs args = new StateArgs.Builder().setFilterName(filterName).addKey(key).build();
-        return sendCommand(checkCodec, args);
+        Request<StateArgs, StateResult> checkRequest = new GenericStateRequest<>("c", true);
+        return send(checkRequest, args);
     }
 
     @Override
     public Future<StateResult> set(String filterName, String key) {
         StateArgs args = new StateArgs.Builder().setFilterName(filterName).addKey(key).build();
-        return sendCommand(setCodec, args);
+        Request<StateArgs, StateResult> setRequest = new GenericStateRequest<>("s", true);
+        return send(setRequest, args);
     }
 
     @Override
@@ -100,7 +94,8 @@ public class BloomdClientImpl implements BloomdClient, BloomdHandler.OnReplyRece
         for (String key : keys) {
             builder.addKey(key);
         }
-        return sendCommand(multiCodec, builder.build());
+        Request<StateArgs, List<StateResult>> multiRequest = new GenericStateRequest<>("m", false);
+        return send(multiRequest, builder.build());
     }
 
     @Override
@@ -109,19 +104,22 @@ public class BloomdClientImpl implements BloomdClient, BloomdHandler.OnReplyRece
         for (String key : keys) {
             builder.addKey(key);
         }
-        return sendCommand(bulkCodec, builder.build());
+        Request<StateArgs, List<StateResult>> bulkRequest = new GenericStateRequest<>("b", false);
+        return send(bulkRequest, builder.build());
     }
 
     @Override
     public Future<BloomdInfo> info(String filterName) {
         checkFilterNameValid(filterName);
-        return sendCommand(infoCodec, filterName);
+        Request<String, BloomdInfo> infoRequest = new InfoRequest();
+        return send(infoRequest, filterName);
     }
 
     @Override
     public Future<Boolean> flush(String filterName) {
         checkFilterNameValid(filterName);
-        return sendCommand(flushCodec, filterName);
+        Request<String, Boolean> flushRequest = new SingleArgRequest("flush");
+        return send(flushRequest, filterName);
     }
 
     private void checkFilterNameValid(String filterName) {
@@ -130,7 +128,7 @@ public class BloomdClientImpl implements BloomdClient, BloomdHandler.OnReplyRece
         }
     }
 
-    public <T, R> CompletableFuture<R> sendCommand(BloomdCommandCodec<T, R> codec, T args) {
+    public <T, R> CompletableFuture<R> send(Request<T, R> request, T args) {
         if (blocked) {
             throw new IllegalStateException("Client was released from the pool");
         }
@@ -144,14 +142,14 @@ public class BloomdClientImpl implements BloomdClient, BloomdHandler.OnReplyRece
         synchronized (clientLock) {
             commandsQueue.add(replyCompletableFuture);
 
-            // replace the codec in the pipeline with the appropriate instance
-            bloomdHandler.queueCodec(codec);
+            // replace the request in the pipeline with the appropriate instance
+            bloomdHandler.queueCodec(request);
 
             // sends the command arguments through the pipeline
             ch.writeAndFlush(args);
         }
 
-        return replyCompletableFuture;
+        return request;
     }
 
     public BloomdHandler getBloomdHandler() {

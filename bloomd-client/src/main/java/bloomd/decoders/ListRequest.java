@@ -6,7 +6,7 @@ import java.util.List;
 
 import bloomd.replies.BloomdFilter;
 
-public class ListCodec implements BloomdCommandCodec<String, List<BloomdFilter>> {
+public class ListRequest extends Request<String, List<BloomdFilter>> {
 
     private final List<BloomdFilter> filters = new ArrayList<>();
 

@@ -5,11 +5,11 @@ import bloomd.FilterDoesNotExistException;
 /**
  * Single arg commands codec. Used to implement `close`, `drop` and `flush`.
  */
-public class SingleArgCodec implements BloomdCommandCodec<String, Boolean> {
+public class SingleArgRequest extends Request<String, Boolean> {
 
     private final String command;
 
-    public SingleArgCodec(String command) {
+    public SingleArgRequest(String command) {
         this.command = command;
     }
 

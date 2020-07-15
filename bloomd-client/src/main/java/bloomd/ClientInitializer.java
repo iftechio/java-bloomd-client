@@ -49,7 +49,7 @@ public class ClientInitializer {
         pipeline.addLast(ENCODER);
 
         // and then business logic
-        pipeline.addLast(bloomdClient.getBloomdHandler());
+        pipeline.addLast(bloomdClient.getConnectionHandler());
     }
 
     public BloomdClient getClient(Channel channel) {

@@ -3,31 +3,37 @@ package bloomd.decoders;
 import bloomd.args.CreateFilterArgs;
 import bloomd.replies.CreateResult;
 
-public class CreateRequest extends Request<CreateFilterArgs, CreateResult> {
+public class CreateRequest extends Request<CreateResult> {
 
-    @Override
-    public String buildCommand(CreateFilterArgs args) {
-        StringBuilder command = new StringBuilder();
+    private final String command;
 
-        command.append("create ");
-        command.append(args.getFilterName());
+    public CreateRequest(CreateFilterArgs args) {
+        StringBuilder builder = new StringBuilder();
+
+        builder.append("create ");
+        builder.append(args.getFilterName());
 
         if (args.getCapacity() != null) {
-            command.append(" capacity=");
-            command.append(args.getCapacity());
+            builder.append(" capacity=");
+            builder.append(args.getCapacity());
         }
 
         if (args.getFalsePositiveProbability() != null) {
-            command.append(" prob=");
-            command.append(String.format("%f", args.getFalsePositiveProbability()));
+            builder.append(" prob=");
+            builder.append(String.format("%f", args.getFalsePositiveProbability()));
         }
 
         if (args.getInMemory() != null) {
-            command.append(" in_memory=");
-            command.append(args.getInMemory() ? 1 : 0);
+            builder.append(" in_memory=");
+            builder.append(args.getInMemory() ? 1 : 0);
         }
 
-        return command.toString();
+        command = builder.toString();
+    }
+
+    @Override
+    public String getCommand() {
+        return command;
     }
 
     @Override

@@ -3,17 +3,23 @@ package bloomd.decoders;
 import bloomd.FilterDoesNotExistException;
 import bloomd.replies.BloomdInfo;
 
-public class InfoRequest extends Request<String, BloomdInfo> {
+public class InfoRequest extends Request<BloomdInfo> {
 
-    private BloomdInfoBuilder builder = null;
+    private final String command;
+
+    public InfoRequest(String filterName) {
+        this.command = "info " + filterName;
+    }
 
     @Override
-    public String buildCommand(String filterName) {
-        return "info " + filterName;
+    public String getCommand() {
+        return command;
     }
 
     @Override
     public BloomdInfo decode(String msg) throws Exception {
+        BloomdInfoBuilder builder = null;
+
         switch (msg) {
             case "Filter does not exist":
                 throw new FilterDoesNotExistException(msg);

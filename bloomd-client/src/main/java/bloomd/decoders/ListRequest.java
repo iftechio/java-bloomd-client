@@ -6,21 +6,27 @@ import java.util.List;
 
 import bloomd.replies.BloomdFilter;
 
-public class ListRequest extends Request<String, List<BloomdFilter>> {
+public class ListRequest extends Request<List<BloomdFilter>> {
 
-    private final List<BloomdFilter> filters = new ArrayList<>();
+    private final String command;
 
-    @Override
-    public String buildCommand(String args) {
+    public ListRequest(String args) {
         if (args.isEmpty()) {
-            return "list";
+            this.command = "list";
         } else {
-            return "list " + args;
+            this.command = "list " + args;
         }
     }
 
     @Override
+    public String getCommand() {
+        return command;
+    }
+
+    @Override
     public List<BloomdFilter> decode(String msg) throws Exception {
+        List<BloomdFilter> filters = new ArrayList<>();
+
         switch (msg) {
             case "START":
                 if (!filters.isEmpty()) {

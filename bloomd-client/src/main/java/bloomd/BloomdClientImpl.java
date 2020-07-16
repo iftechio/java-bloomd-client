@@ -144,12 +144,12 @@ public class BloomdClientImpl implements BloomdClient, ConnectionListener {
 
     @Override
     public void onDisconnect() {
-
+        setBlocked(true);
     }
 
     @Override
     public void onError(Exception e) {
-
+        setBlocked(true);
     }
 
     public Channel getChannel() {

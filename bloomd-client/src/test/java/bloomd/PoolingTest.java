@@ -1,6 +1,7 @@
 package bloomd;
 
 import bloomd.args.CreateFilterArgs;
+import bloomd.helper.DockerBasedTest;
 import bloomd.replies.BloomdInfo;
 import bloomd.replies.CreateResult;
 import bloomd.replies.StateResult;
@@ -12,7 +13,7 @@ import java.util.concurrent.*;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.Assert.fail;
 
-public class TestPooling extends DockerBasedTest {
+public class PoolingTest extends DockerBasedTest {
 
     public static final String FILTER = "testFilter" + System.currentTimeMillis();
     public static final Random RAND = new Random();

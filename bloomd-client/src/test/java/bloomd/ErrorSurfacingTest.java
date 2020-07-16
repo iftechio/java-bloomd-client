@@ -9,7 +9,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import static bloomd.DockerHelper.*;
+import static bloomd.helper.DockerHelper.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.fail;
 
@@ -36,7 +36,7 @@ public class ErrorSurfacingTest {
         Thread.sleep(3000);
 
         // create a client that connects to the service
-        BloomdClient client = BloomdClient.newInstance("localhost", port).get(1, TimeUnit.SECONDS);
+        BloomdClient client = BloomdClient.newInstance("localhost", port).get(5, TimeUnit.SECONDS);
 
         // make sure it can connect
         List<BloomdFilter> list = client.list().get(1, TimeUnit.MINUTES);

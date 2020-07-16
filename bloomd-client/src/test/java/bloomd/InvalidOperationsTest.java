@@ -3,6 +3,7 @@ package bloomd;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 
+import bloomd.helper.DockerBasedTest;
 import org.junit.Before;
 import org.junit.Test;
 

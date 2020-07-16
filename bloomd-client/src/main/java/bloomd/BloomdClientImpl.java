@@ -1,6 +1,5 @@
 package bloomd;
 
-import bloomd.ConnectionHandler.ConnectionListener;
 import bloomd.args.CreateFilterArgs;
 import bloomd.args.StateArgs;
 import bloomd.decoders.*;
@@ -11,14 +10,14 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 
-public class BloomdClientImpl implements BloomdClient, ConnectionListener {
+public class BloomdClientImpl implements BloomdClient {
     private final Channel ch;
     private final ConnectionHandler connectionHandler;
     private boolean blocked = false;
 
     public BloomdClientImpl(Channel channel) {
         this.ch = channel;
-        this.connectionHandler = new ConnectionHandler(this);
+        this.connectionHandler = new ConnectionHandler();
     }
 
     @Override
@@ -140,16 +139,6 @@ public class BloomdClientImpl implements BloomdClient, ConnectionListener {
 
     public ConnectionHandler getConnectionHandler() {
         return connectionHandler;
-    }
-
-    @Override
-    public void onDisconnect() {
-        setBlocked(true);
-    }
-
-    @Override
-    public void onError(Exception e) {
-        setBlocked(true);
     }
 
     public Channel getChannel() {

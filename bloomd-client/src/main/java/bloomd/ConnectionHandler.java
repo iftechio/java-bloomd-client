@@ -11,10 +11,8 @@ import java.util.Queue;
 public class ConnectionHandler extends ChannelDuplexHandler {
 
     private final Queue<Request<?>> queue = new ArrayDeque<>();
-    private final ConnectionListener listener;
 
-    public ConnectionHandler(ConnectionListener listener) {
-        this.listener = listener;
+    public ConnectionHandler() {
     }
 
     @Override
@@ -36,19 +34,7 @@ public class ConnectionHandler extends ChannelDuplexHandler {
         try {
             request.handle((String) msg);
         } catch (Exception e) {
-            listener.onError(e);
             ctx.channel().close();
         }
-    }
-
-    @Override
-    public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        super.channelInactive(ctx);
-        listener.onDisconnect();
-    }
-
-    public interface ConnectionListener {
-        void onDisconnect();
-        void onError(Exception e);
     }
 }

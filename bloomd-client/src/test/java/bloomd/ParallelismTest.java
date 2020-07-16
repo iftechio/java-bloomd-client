@@ -30,7 +30,7 @@ public class ParallelismTest extends DockerBasedTest {
     public void testParallelRequests() throws Exception {
         BloomdClient client = BloomdClient
                 .newInstance("localhost", port)
-                .get(1, TimeUnit.SECONDS);
+                .get(5, TimeUnit.SECONDS);
 
         // create filter with at least 200000 capacity
         CreateFilterArgs createArgs = new CreateFilterArgs.Builder()
@@ -48,7 +48,7 @@ public class ParallelismTest extends DockerBasedTest {
         for (int i = 0; i < 100000; i++) {
             String key = UUID.randomUUID().toString();
 
-            tasks.add(() -> client.set(FILTER, key).get(3, TimeUnit.SECONDS));
+            tasks.add(() -> client.set(FILTER, key).get(8, TimeUnit.SECONDS));
             keys.add(key);
         }
 

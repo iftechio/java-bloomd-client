@@ -26,7 +26,7 @@ public class PoolingDisconnectionTest extends DockerBasedTest {
         // should be able to acquire 20 clients
         for (int i = 0; i < 5; i++) {
             Future<BloomdClient> acquire = bloomdClientPool.acquire();
-            BloomdClient bloomdClient = acquire.get(1, TimeUnit.SECONDS);
+            BloomdClient bloomdClient = acquire.get(5, TimeUnit.SECONDS);
             clients.add(bloomdClient);
         }
 

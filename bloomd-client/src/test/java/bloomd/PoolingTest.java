@@ -27,7 +27,7 @@ public class PoolingTest extends DockerBasedTest {
         // should be able to acquire 20 clients
         for (int i = 0; i < 20; i++) {
             Future<BloomdClient> acquire = bloomdClientPool.acquire();
-            BloomdClient bloomdClient = acquire.get(1, TimeUnit.SECONDS);
+            BloomdClient bloomdClient = acquire.get(5, TimeUnit.SECONDS);
             clients.add(bloomdClient);
         }
 
@@ -59,7 +59,7 @@ public class PoolingTest extends DockerBasedTest {
         //noinspection Duplicates
         results.forEach(result -> {
             try {
-                StateResult stateResult = result.get(3, TimeUnit.SECONDS);
+                StateResult stateResult = result.get(10, TimeUnit.SECONDS);
                 assertThat(stateResult).isIn(Arrays.asList(StateResult.YES, StateResult.NO));
             } catch (Throwable e) {
                 e.printStackTrace();

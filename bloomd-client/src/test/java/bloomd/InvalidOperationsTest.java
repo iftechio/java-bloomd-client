@@ -26,7 +26,7 @@ public class InvalidOperationsTest extends DockerBasedTest {
         // get bloomd client implementation
         client = BloomdClient
                 .newInstance("localhost", port)
-                .get(1, TimeUnit.SECONDS);
+                .get(5, TimeUnit.SECONDS);
     }
 
     @Test

@@ -1,13 +1,12 @@
 package bloomd;
 
-import bloomd.decoders.TrimStringDecoder;
+import bloomd.decoders.BloomdResponseDecoder;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.channel.ChannelPipeline;
 import io.netty.handler.codec.DelimiterBasedFrameDecoder;
 import io.netty.handler.codec.Delimiters;
-import io.netty.handler.codec.string.StringDecoder;
 import io.netty.handler.codec.string.StringEncoder;
 
 import java.util.Map;
@@ -20,9 +19,6 @@ import java.util.logging.Logger;
 public class ClientInitializer {
 
     private static final Logger LOG = Logger.getLogger(ClientInitializer.class.getSimpleName());
-
-    private static final TrimStringDecoder DECODER = new TrimStringDecoder();
-    private static final StringEncoder ENCODER = new StringEncoder();
 
     private final Map<Channel, BloomdClient> registry = new ConcurrentHashMap<>();
 
@@ -44,9 +40,11 @@ public class ClientInitializer {
             }
         });
 
+        // 必要的，防止TCP相应"拆包"
+        pipeline.addLast(new DelimiterBasedFrameDecoder(Integer.MAX_VALUE, Delimiters.lineDelimiter()));
         // Add the text line codec combination first
-        pipeline.addLast(DECODER);
-        pipeline.addLast(ENCODER);
+        pipeline.addLast(new BloomdResponseDecoder());
+        pipeline.addLast(new StringEncoder());
 
         // and then business logic
         pipeline.addLast(bloomdClient.getConnectionHandler());

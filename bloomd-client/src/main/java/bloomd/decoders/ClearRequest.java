@@ -2,11 +2,16 @@ package bloomd.decoders;
 
 import bloomd.replies.ClearResult;
 
-public class ClearCodec implements BloomdCommandCodec<String, ClearResult> {
+public class ClearRequest extends Request<ClearResult> {
+    private final String command;
+
+    public ClearRequest(String filterName) {
+        command = "clear " + filterName;
+    }
 
     @Override
-    public String buildCommand(String filterName) {
-        return "clear " + filterName;
+    public String getCommand(){
+        return command;
     }
 
     @Override

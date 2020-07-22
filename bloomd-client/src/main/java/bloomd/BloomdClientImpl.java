@@ -7,36 +7,17 @@ import bloomd.replies.*;
 import io.netty.channel.Channel;
 
 import java.util.List;
-import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Future;
 
-public class BloomdClientImpl implements BloomdClient, BloomdHandler.OnReplyReceivedListener {
-
-    private final BloomdCommandCodec<String, List<BloomdFilter>> listCodec = new ListCodec();
-    private final BloomdCommandCodec<String, BloomdInfo> infoCodec = new InfoCodec();
-    private final BloomdCommandCodec<String, ClearResult> clearCodec = new ClearCodec();
-    private final BloomdCommandCodec<CreateFilterArgs, CreateResult> createCodec = new CreateCodec();
-    private final BloomdCommandCodec<String, Boolean> dropCodec = new SingleArgCodec("drop");
-    private final BloomdCommandCodec<String, Boolean> closeCodec = new SingleArgCodec("close");
-    private final BloomdCommandCodec<String, Boolean> flushCodec = new SingleArgCodec("flush");
-    private final BloomdCommandCodec<StateArgs, StateResult> setCodec = new GenericStateCodec<>("s", true);
-    private final BloomdCommandCodec<StateArgs, StateResult> checkCodec = new GenericStateCodec<>("c", true);
-    private final BloomdCommandCodec<StateArgs, List<StateResult>> bulkCodec = new GenericStateCodec<>("b", false);
-    private final BloomdCommandCodec<StateArgs, List<StateResult>> multiCodec = new GenericStateCodec<>("m", false);
-
-    private final Object clientLock = new Object();
-
+public class BloomdClientImpl implements BloomdClient {
     private final Channel ch;
-    private final BloomdHandler bloomdHandler;
-    private final Queue<CompletableFuture> commandsQueue;
+    private final ConnectionHandler connectionHandler;
     private boolean blocked = false;
 
     public BloomdClientImpl(Channel channel) {
         this.ch = channel;
-        this.bloomdHandler = new BloomdHandler(this);
-        this.commandsQueue = new ConcurrentLinkedQueue<>();
+        this.connectionHandler = new ConnectionHandler();
     }
 
     @Override
@@ -46,7 +27,8 @@ public class BloomdClientImpl implements BloomdClient, BloomdHandler.OnReplyRece
 
     @Override
     public Future<List<BloomdFilter>> list(String prefix) {
-        return sendCommand(listCodec, prefix == null ? "" : prefix);
+        Request<List<BloomdFilter>> listRequest = new ListRequest(prefix == null ? "" : prefix);
+        return send(listRequest);
     }
 
     @Override
@@ -61,37 +43,43 @@ public class BloomdClientImpl implements BloomdClient, BloomdHandler.OnReplyRece
     @Override
     public Future<CreateResult> create(CreateFilterArgs args) {
         checkFilterNameValid(args.getFilterName());
-        return sendCommand(createCodec, args);
+        Request<CreateResult> createRequest = new CreateRequest(args);
+        return send(createRequest);
     }
 
     @Override
     public Future<Boolean> drop(String filterName) {
         checkFilterNameValid(filterName);
-        return sendCommand(dropCodec, filterName);
+        Request<Boolean> dropRequest = new SingleArgRequest("drop", filterName);
+        return send(dropRequest);
     }
 
     @Override
     public Future<Boolean> close(String filterName) {
         checkFilterNameValid(filterName);
-        return sendCommand(closeCodec, filterName);
+        Request<Boolean> closeRequest = new SingleArgRequest("close", filterName);
+        return send(closeRequest);
     }
 
     @Override
     public Future<ClearResult> clear(String filterName) {
         checkFilterNameValid(filterName);
-        return sendCommand(clearCodec, filterName);
+        Request<ClearResult> clearRequest = new ClearRequest(filterName);
+        return send(clearRequest);
     }
 
     @Override
     public Future<StateResult> check(String filterName, String key) {
         StateArgs args = new StateArgs.Builder().setFilterName(filterName).addKey(key).build();
-        return sendCommand(checkCodec, args);
+        Request<StateResult> checkRequest = new GenericStateRequest<>("c", args,true);
+        return send(checkRequest);
     }
 
     @Override
     public Future<StateResult> set(String filterName, String key) {
         StateArgs args = new StateArgs.Builder().setFilterName(filterName).addKey(key).build();
-        return sendCommand(setCodec, args);
+        Request<StateResult> setRequest = new GenericStateRequest<>("s", args, true);
+        return send(setRequest);
     }
 
     @Override
@@ -100,7 +88,8 @@ public class BloomdClientImpl implements BloomdClient, BloomdHandler.OnReplyRece
         for (String key : keys) {
             builder.addKey(key);
         }
-        return sendCommand(multiCodec, builder.build());
+        Request<List<StateResult>> multiRequest = new GenericStateRequest<>("m", builder.build(), false);
+        return send(multiRequest);
     }
 
     @Override
@@ -109,19 +98,22 @@ public class BloomdClientImpl implements BloomdClient, BloomdHandler.OnReplyRece
         for (String key : keys) {
             builder.addKey(key);
         }
-        return sendCommand(bulkCodec, builder.build());
+        Request<List<StateResult>> bulkRequest = new GenericStateRequest<>("b", builder.build(), false);
+        return send(bulkRequest);
     }
 
     @Override
     public Future<BloomdInfo> info(String filterName) {
         checkFilterNameValid(filterName);
-        return sendCommand(infoCodec, filterName);
+        Request<BloomdInfo> infoRequest = new InfoRequest(filterName);
+        return send(infoRequest);
     }
 
     @Override
     public Future<Boolean> flush(String filterName) {
         checkFilterNameValid(filterName);
-        return sendCommand(flushCodec, filterName);
+        Request<Boolean> flushRequest = new SingleArgRequest("flush", filterName);
+        return send(flushRequest);
     }
 
     private void checkFilterNameValid(String filterName) {
@@ -130,7 +122,7 @@ public class BloomdClientImpl implements BloomdClient, BloomdHandler.OnReplyRece
         }
     }
 
-    public <T, R> CompletableFuture<R> sendCommand(BloomdCommandCodec<T, R> codec, T args) {
+    public <V> CompletableFuture<V> send(Request<V> request) {
         if (blocked) {
             throw new IllegalStateException("Client was released from the pool");
         }
@@ -139,51 +131,14 @@ public class BloomdClientImpl implements BloomdClient, BloomdHandler.OnReplyRece
             throw new IllegalStateException("Client is not connected to the server");
         }
 
-        // queue a future to be completed with the result of this command
-        CompletableFuture<R> replyCompletableFuture = new CompletableFuture<>();
-        synchronized (clientLock) {
-            commandsQueue.add(replyCompletableFuture);
+        // sends the command arguments through the pipeline
+        ch.writeAndFlush(request);
 
-            // replace the codec in the pipeline with the appropriate instance
-            bloomdHandler.queueCodec(codec);
-
-            // sends the command arguments through the pipeline
-            ch.writeAndFlush(args);
-        }
-
-        return replyCompletableFuture;
+        return request;
     }
 
-    public BloomdHandler getBloomdHandler() {
-        return bloomdHandler;
-    }
-
-    @Override
-    public void onReplyReceived(Object reply) {
-        //noinspection unchecked
-        CompletableFuture<Object> future = commandsQueue.poll();
-        if (future == null) {
-            throw new IllegalStateException("Promise queue is empty, received reply");
-        }
-        future.complete(reply);
-    }
-
-    @Override
-    public void onDisconnect() {
-        CompletableFuture<Object> future;
-        //noinspection unchecked
-        while ((future = commandsQueue.poll()) != null) {
-            future.completeExceptionally(new IllegalStateException("Connection has been dropped"));
-        }
-    }
-
-    @Override
-    public void onError(Exception e) {
-        CompletableFuture<Object> future;
-        //noinspection unchecked
-        while ((future = commandsQueue.poll()) != null) {
-            future.completeExceptionally(e);
-        }
+    public ConnectionHandler getConnectionHandler() {
+        return connectionHandler;
     }
 
     public Channel getChannel() {

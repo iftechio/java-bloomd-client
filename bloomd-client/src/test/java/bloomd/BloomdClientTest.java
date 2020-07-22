@@ -1,5 +1,6 @@
 package bloomd;
 
+import bloomd.helper.DockerBasedTest;
 import org.junit.Test;
 
 import java.util.Arrays;

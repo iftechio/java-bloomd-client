@@ -1,5 +1,6 @@
 package bloomd;
 
+import bloomd.helper.DockerBasedTest;
 import org.junit.Test;
 
 import java.net.ConnectException;
@@ -9,12 +10,12 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
-import static bloomd.DockerHelper.startBloomdInDocker;
-import static bloomd.DockerHelper.stopBloomdInDocker;
+import static bloomd.helper.DockerHelper.startBloomdInDocker;
+import static bloomd.helper.DockerHelper.stopBloomdInDocker;
 import static org.assertj.core.api.Java6Assertions.assertThat;
 import static org.junit.Assert.fail;
 
-public class TestPoolingDisconnection extends DockerBasedTest {
+public class PoolingDisconnectionTest extends DockerBasedTest {
 
     @Test
     public void testClientsPool() throws Exception {
@@ -25,7 +26,7 @@ public class TestPoolingDisconnection extends DockerBasedTest {
         // should be able to acquire 20 clients
         for (int i = 0; i < 5; i++) {
             Future<BloomdClient> acquire = bloomdClientPool.acquire();
-            BloomdClient bloomdClient = acquire.get(1, TimeUnit.SECONDS);
+            BloomdClient bloomdClient = acquire.get(5, TimeUnit.SECONDS);
             clients.add(bloomdClient);
         }
 

@@ -1,45 +1,49 @@
 package bloomd.decoders;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import bloomd.replies.BloomdFilter;
 
-public class ListCodec implements BloomdCommandCodec<String, List<BloomdFilter>> {
+public class ListRequest extends Request<List<BloomdFilter>> {
 
-    private final List<BloomdFilter> filters = new ArrayList<>();
+    private final String command;
+    private final List<BloomdFilter> filters;
+
+    public ListRequest(String args) {
+        if (args.isEmpty()) {
+            this.command = "list";
+        } else {
+            this.command = "list " + args;
+        }
+        this.filters = new ArrayList<>();
+    }
 
     @Override
-    public String buildCommand(String args) {
-        if (args.isEmpty()) {
-            return "list";
-        } else {
-            return "list " + args;
-        }
+    public String getCommand() {
+        return command;
     }
 
     @Override
     public List<BloomdFilter> decode(String msg) throws Exception {
-        switch (msg) {
+        String[] lines = msg.split("\\r?\\n");
+        for (String line : lines) {
+            decodeLine(line);
+        }
+        return filters;
+    }
+
+    private void decodeLine(String line) {
+        switch (line) {
             case "START":
                 if (!filters.isEmpty()) {
-                    filters.clear();
                     throw new IllegalStateException("START not expected. List already initialized.");
                 }
-
-                return null;
-
+                break;
             case "END":
-                List<BloomdFilter> results = Collections.unmodifiableList(new ArrayList<>(filters));
-
-                // we use the same list to build different responses, so we have to clear it
-                filters.clear();
-
-                return results;
-
+                break;
             default:
-                String[] parts = msg.split(" ");
+                String[] parts = line.split(" ");
 
                 String filterName = parts[0];
                 float falsePositiveProbability = Float.parseFloat(parts[1]);
@@ -48,8 +52,7 @@ public class ListCodec implements BloomdCommandCodec<String, List<BloomdFilter>>
                 long size = Long.parseLong(parts[4]);
 
                 filters.add(new BloomdFilter(filterName, falsePositiveProbability, sizeBytes, capacity, size));
-
-                return null;
+                break;
         }
     }
 }

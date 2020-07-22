@@ -1,6 +1,7 @@
 package bloomd;
 
 import bloomd.args.CreateFilterArgs;
+import bloomd.helper.DockerBasedTest;
 import bloomd.replies.BloomdInfo;
 import bloomd.replies.CreateResult;
 import bloomd.replies.StateResult;
@@ -12,7 +13,7 @@ import java.util.concurrent.*;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.Assert.fail;
 
-public class TestPooling extends DockerBasedTest {
+public class PoolingTest extends DockerBasedTest {
 
     public static final String FILTER = "testFilter" + System.currentTimeMillis();
     public static final Random RAND = new Random();
@@ -26,7 +27,7 @@ public class TestPooling extends DockerBasedTest {
         // should be able to acquire 20 clients
         for (int i = 0; i < 20; i++) {
             Future<BloomdClient> acquire = bloomdClientPool.acquire();
-            BloomdClient bloomdClient = acquire.get(1, TimeUnit.SECONDS);
+            BloomdClient bloomdClient = acquire.get(5, TimeUnit.SECONDS);
             clients.add(bloomdClient);
         }
 
@@ -58,7 +59,7 @@ public class TestPooling extends DockerBasedTest {
         //noinspection Duplicates
         results.forEach(result -> {
             try {
-                StateResult stateResult = result.get(3, TimeUnit.SECONDS);
+                StateResult stateResult = result.get(10, TimeUnit.SECONDS);
                 assertThat(stateResult).isIn(Arrays.asList(StateResult.YES, StateResult.NO));
             } catch (Throwable e) {
                 e.printStackTrace();

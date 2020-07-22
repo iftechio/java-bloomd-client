@@ -3,6 +3,7 @@ package bloomd;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 
+import bloomd.helper.DockerBasedTest;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -25,7 +26,7 @@ public class InvalidOperationsTest extends DockerBasedTest {
         // get bloomd client implementation
         client = BloomdClient
                 .newInstance("localhost", port)
-                .get(1, TimeUnit.SECONDS);
+                .get(5, TimeUnit.SECONDS);
     }
 
     @Test

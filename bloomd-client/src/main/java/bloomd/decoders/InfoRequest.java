@@ -3,46 +3,53 @@ package bloomd.decoders;
 import bloomd.FilterDoesNotExistException;
 import bloomd.replies.BloomdInfo;
 
-public class InfoCodec implements BloomdCommandCodec<String, BloomdInfo> {
+public class InfoRequest extends Request<BloomdInfo> {
 
+    private final String command;
     private BloomdInfoBuilder builder = null;
 
+    public InfoRequest(String filterName) {
+        this.command = "info " + filterName;
+    }
+
     @Override
-    public String buildCommand(String filterName) {
-        return "info " + filterName;
+    public String getCommand() {
+        return command;
     }
 
     @Override
     public BloomdInfo decode(String msg) throws Exception {
-        switch (msg) {
-            case "Filter does not exist":
-                throw new FilterDoesNotExistException(msg);
+        String[] lines = msg.split("\\r?\\n");
+        for (String line : lines) {
+            decodeLine(line);
+        }
+        return builder.createBloomdInfo();
+    }
 
+    private void decodeLine(String line) throws Exception {
+        switch (line) {
+            case "Filter does not exist":
+                throw new FilterDoesNotExistException(line);
             case "START":
                 if (builder != null) {
                     throw new IllegalStateException("START not expected. Builder already initialized.");
                 }
 
                 builder = new BloomdInfoBuilder();
-
-                return null;
-
+                break;
             case "END":
                 if (builder == null) {
                     throw new IllegalStateException("END not expected. Builder was not initialized.");
                 }
-
-                BloomdInfo bloomdInfo = builder.createBloomdInfo();
-
-                builder = null;
-
-                return bloomdInfo;
-
+                break;
             default:
-                String[] parts = msg.split(" ");
+                if (builder == null) {
+                    throw new IllegalStateException("get info line without START at the beginning");
+                }
+                String[] parts = line.split(" ");
 
                 if (parts.length != 2) {
-                    throw new IllegalStateException("Invalid info line: " + msg);
+                    throw new IllegalStateException("Invalid info line: " + line);
                 }
 
                 String key = parts[0];
@@ -89,8 +96,7 @@ public class InfoCodec implements BloomdCommandCodec<String, BloomdInfo> {
                         builder.setStorage(Long.parseLong(value));
                         break;
                 }
-
-                return null;
+                break;
         }
     }
 

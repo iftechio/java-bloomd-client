@@ -1,4 +1,4 @@
-package bloomd;
+package bloomd.helper;
 
 import org.junit.After;
 import org.junit.Before;
@@ -8,9 +8,9 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import static bloomd.DockerHelper.randomPort;
-import static bloomd.DockerHelper.startBloomdInDocker;
-import static bloomd.DockerHelper.stopBloomdInDocker;
+import static bloomd.helper.DockerHelper.randomPort;
+import static bloomd.helper.DockerHelper.startBloomdInDocker;
+import static bloomd.helper.DockerHelper.stopBloomdInDocker;
 import static org.assertj.core.api.Java6Assertions.assertThat;
 
 public abstract class DockerBasedTest {

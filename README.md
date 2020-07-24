@@ -1,6 +1,7 @@
 ## java-bloomd-client
 
 Java client for [armon's bloomd](https://github.com/armon/bloomd) built atop [netty](https://github.com/netty/netty).
+Jike forked based on version 0.13
 
 ### Usage
 

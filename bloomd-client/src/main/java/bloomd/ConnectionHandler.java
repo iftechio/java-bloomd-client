@@ -7,8 +7,10 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
 import java.util.ArrayDeque;
 import java.util.Queue;
+import java.util.logging.Logger;
 
 public class ConnectionHandler extends ChannelDuplexHandler {
+    private static final Logger LOG = Logger.getLogger(ConnectionHandler.class.getSimpleName());
 
     private final Queue<Request<?>> queue = new ArrayDeque<>();
 
@@ -33,6 +35,8 @@ public class ConnectionHandler extends ChannelDuplexHandler {
 
         try {
             request.handle((String) msg);
+        } catch (FilterDoesNotExistException e) {
+            LOG.warning(e.toString());
         } catch (Exception e) {
             ctx.channel().close();
         }
